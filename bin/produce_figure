@@ -8,10 +8,10 @@ from glob import glob
 import numpy
 import six
 
-numpy.random.seed(1234)
+numpy.random.seed(123456)
 
 
-def make_numerical_tex_string(step, input_size, output_size, padding,
+def make_numerical_tex_string(which_, step, input_size, output_size, padding,
                               kernel_size, stride, dilation, mode):
     """Creates a LaTeX string for a numerical convolution animation.
 
@@ -58,8 +58,13 @@ def make_numerical_tex_string(step, input_size, output_size, padding,
     input_[padding: padding + input_size,
            padding: padding + input_size] = numpy.random.randint(
         low=0, high=4, size=(input_size, input_size))
-    kernel = numpy.random.randint(
-        low=0, high=3, size=(kernel_size, kernel_size))
+    
+    kernel = numpy.arange(kernel_size*kernel_size).reshape((kernel_size,kernel_size))
+    
+    if which_ == 'convolution':
+        kernel = numpy.flipud(numpy.fliplr(kernel))
+
+
     output = numpy.empty((output_size, output_size), dtype='int32')
     for offset_x, offset_y in itertools.product(range(output_size),
                                                 range(output_size)):
@@ -215,7 +220,7 @@ def compile_figure(which_, name, step, **kwargs):
     if which_ == 'arithmetic':
         tex_string = make_arithmetic_tex_string(step, **kwargs)
     else:
-        tex_string = make_numerical_tex_string(step, **kwargs)
+        tex_string = make_numerical_tex_string(which_, step, **kwargs)
     jobname = '{}_{:02d}'.format(name, step)
     p = subprocess.Popen(['pdflatex', '-jobname={}'.format(jobname),
                           '-output-directory', 'pdf'],
@@ -256,11 +261,18 @@ if __name__ == "__main__":
     subparser.set_defaults(which_='arithmetic')
 
     subparser = subparsers.add_parser('numerical', parents=[parent_parser],
-                                      help='numerical convolution animation')
+                                      help='numerical correlation animation')
     subparser.add_argument("-m", "--mode", type=str, default='convolution',
                            choices=('convolution', 'average', 'max'),
                            help="kernel mode")
     subparser.set_defaults(which_='numerical')
+
+    subparser = subparsers.add_parser('convolution', parents=[parent_parser],
+                                      help='convolution animation')
+    subparser.add_argument("-m", "--mode", type=str, default='convolution',
+                           choices=('convolution', 'average', 'max'),
+                           help="kernel mode")
+    subparser.set_defaults(which_='convolution')
 
     args = parser.parse_args()
     args_dict = vars(args)
