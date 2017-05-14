@@ -60,21 +60,28 @@ def make_numerical_tex_string(step, input_size, output_size, padding,
         low=0, high=4, size=(input_size, input_size))
     kernel = numpy.random.randint(
         low=0, high=3, size=(kernel_size, kernel_size))
-    output = numpy.empty((output_size, output_size), dtype='float32')
+    output = numpy.empty((output_size, output_size), dtype='int32')
     for offset_x, offset_y in itertools.product(range(output_size),
                                                 range(output_size)):
         if mode == 'convolution':
-            output[offset_x, offset_y] = (
+            output[offset_x, offset_y] = int((
                 input_[stride * offset_x: stride * offset_x + kernel_size,
-                       stride * offset_y: stride * offset_y + kernel_size] * kernel).sum()
+                       stride * offset_y: stride * offset_y + kernel_size] * kernel).sum())
         elif mode == 'average':
-            output[offset_x, offset_y] = (
+            output[offset_x, offset_y] = int((
                 input_[stride * offset_x: stride * offset_x + kernel_size,
-                       stride * offset_y: stride * offset_y + kernel_size]).mean()
+                       stride * offset_y: stride * offset_y + kernel_size]).mean())
         else:
-            output[offset_x, offset_y] = (
+            output[offset_x, offset_y] = int((
                 input_[stride * offset_x: stride * offset_x + kernel_size,
-                       stride * offset_y: stride * offset_y + kernel_size]).max()
+                       stride * offset_y: stride * offset_y + kernel_size]).max())
+        
+        output[offset_x, offset_y] = numpy.int(output[offset_x, offset_y])
+
+    #output = int(output)
+    import pdb as pdb
+    #pdb.set_trace()
+    #output = int(output)
 
     offsets = list(itertools.product(range(output_size - 1, -1, -1),
                                      range(output_size)))
@@ -82,7 +89,7 @@ def make_numerical_tex_string(step, input_size, output_size, padding,
 
     if mode == 'convolution':
         kernel_values_string = ''.join(
-            "\\node (node) at ({0},{1}) {{\\tiny {2}}};\n".format(
+            "\\node (node) at ({0},{1}) {{ \\color{{red}} \\tiny {2}}};\n".format(
                 i + 0.8 + stride * offset_x, j + 0.2 + stride * offset_y,
                 kernel[kernel_size - 1 - j, i])
             for i, j in itertools.product(range(kernel_size),
@@ -90,12 +97,14 @@ def make_numerical_tex_string(step, input_size, output_size, padding,
     else:
         kernel_values_string = '\n'
 
+    #pdb.set_trace()
+
     return six.b(tex_template.format(**{
         'PADDING_TO': '{0},{0}'.format(total_input_size),
         'INPUT_FROM': '{0},{0}'.format(padding),
         'INPUT_TO': '{0},{0}'.format(padding + input_size),
         'INPUT_VALUES': ''.join(
-            "\\node (node) at ({0},{1}) {{\\footnotesize {2}}};\n".format(
+            "\\node (node) at ({0},{1}) {{ \\footnotesize {2}}};\n".format(
                 i + 0.5, j + 0.5, input_[total_input_size - 1 - j, i])
             for i, j in itertools.product(range(total_input_size),
                                           range(total_input_size))),
@@ -108,7 +117,7 @@ def make_numerical_tex_string(step, input_size, output_size, padding,
         'OUTPUT_GRID_FROM': '{},{}'.format(offset_x, offset_y),
         'OUTPUT_GRID_TO': '{},{}'.format(offset_x + 1, offset_y + 1),
         'OUTPUT_VALUES': ''.join(
-            "\\node (node) at ({0},{1}) {{\\tiny {2:.1f}}};\n".format(
+            "\\node (node) at ({0},{1}) {{ \\tiny{2}}};\n".format(
                 i + 0.5, j + 0.5, output[output_size - 1 - j, i])
             for i, j in itertools.product(range(output_size),
                                           range(output_size))),
